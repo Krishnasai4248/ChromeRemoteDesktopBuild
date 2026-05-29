@@ -42,7 +42,7 @@ export default function Viewer({ sessionCode, onDisconnect }) {
   // Mouse handlers
   const onMouseMove = useCallback((e) => {
     const now = Date.now();
-    if (now - lastMove.current < 16) return; // ~60fps throttle
+    if (now - lastMove.current < 8) return; // ~120fps throttle
     lastMove.current = now;
     send({ type: 'mousemove', ...toRemote(e.clientX, e.clientY) });
   }, []);
