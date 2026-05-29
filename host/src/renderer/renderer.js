@@ -49,7 +49,8 @@ async function getScreenStream() {
         chromeMediaSource: 'desktop',
         chromeMediaSourceId: primary.id,
         maxWidth: window.screen.width,
-        maxHeight: window.screen.height
+        maxHeight: window.screen.height,
+        maxFrameRate: 30
       }
     }
   });
