@@ -14,16 +14,24 @@ const PEERJS_CONFIG = {
   }
 };
 
-export default function Viewer({ sessionCode, onDisconnect }) {
-  const videoRef    = useRef(null);
-  const peerRef     = useRef(null);
-  const dataRef     = useRef(null);
-  const screenInfo  = useRef({ width: 1920, height: 1080 });
-  const lastMove    = useRef(0);
+// Cursor SVG arrow (matches Windows default cursor shape)
+const CURSOR_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+  <path d="M2 2 L2 16 L6 12 L9 18 L11 17 L8 11 L14 11 Z"
+    fill="white" stroke="black" stroke-width="1.2" stroke-linejoin="round"/>
+</svg>`;
 
-  const [status, setStatus]           = useState('connecting');
-  const [statusText, setStatusText]   = useState('Connecting...');
-  const [pointerLocked, setPointerLocked] = useState(false);
+export default function Viewer({ sessionCode, onDisconnect }) {
+  const videoRef   = useRef(null);
+  const cursorRef  = useRef(null);   // local cursor overlay — moved via direct DOM (instant)
+  const peerRef    = useRef(null);
+  const dataRef    = useRef(null);
+  const screenInfo = useRef({ width: 1920, height: 1080 });
+  const lastMove   = useRef(0);
+  const insideVideo = useRef(false);
+
+  const [status, setStatus]         = useState('connecting');
+  const [statusText, setStatusText] = useState('Connecting...');
 
   function toRemote(clientX, clientY) {
     const rect = videoRef.current.getBoundingClientRect();
@@ -37,40 +45,40 @@ export default function Viewer({ sessionCode, onDisconnect }) {
     if (dataRef.current?.open) dataRef.current.send(data);
   }
 
-  // Pointer lock change listener
-  useEffect(() => {
-    const onChange = () => setPointerLocked(document.pointerLockElement === videoRef.current);
-    document.addEventListener('pointerlockchange', onChange);
-    return () => document.removeEventListener('pointerlockchange', onChange);
+  // Move local cursor overlay directly via DOM — zero React overhead, feels instant
+  function moveCursorOverlay(clientX, clientY) {
+    if (!cursorRef.current || !videoRef.current) return;
+    const rect = videoRef.current.getBoundingClientRect();
+    const lx = clientX - rect.left;
+    const ly = clientY - rect.top;
+    cursorRef.current.style.transform = `translate(${lx}px, ${ly}px)`;
+  }
+
+  const onMouseEnter = useCallback(() => {
+    insideVideo.current = true;
+    if (cursorRef.current) cursorRef.current.style.opacity = '1';
   }, []);
 
-  const requestLock = useCallback(() => {
-    if (status === 'connected' && videoRef.current) {
-      videoRef.current.requestPointerLock();
-    }
-  }, [status]);
+  const onMouseLeave = useCallback(() => {
+    insideVideo.current = false;
+    if (cursorRef.current) cursorRef.current.style.opacity = '0';
+  }, []);
 
-  // Mouse handlers
   const onMouseMove = useCallback((e) => {
-    if (document.pointerLockElement === videoRef.current) {
-      // Pointer locked — raw delta, feels native
-      if (e.movementX !== 0 || e.movementY !== 0) {
-        send({ type: 'mousedelta', dx: e.movementX, dy: e.movementY });
-      }
-    } else {
-      // Not locked — absolute coordinates
-      const now = Date.now();
-      if (now - lastMove.current < 8) return;
-      lastMove.current = now;
-      send({ type: 'mousemove', ...toRemote(e.clientX, e.clientY) });
-    }
-  }, [status]);
+    // Move local overlay instantly — no waiting for remote
+    moveCursorOverlay(e.clientX, e.clientY);
+
+    // Send to remote throttled at ~120fps
+    const now = Date.now();
+    if (now - lastMove.current < 8) return;
+    lastMove.current = now;
+    send({ type: 'mousemove', ...toRemote(e.clientX, e.clientY) });
+  }, []);
 
   const onMouseDown = useCallback((e) => {
     e.preventDefault();
-    if (!pointerLocked) requestLock();
     send({ type: 'mousedown', button: e.button, ...toRemote(e.clientX, e.clientY) });
-  }, [pointerLocked, requestLock]);
+  }, []);
 
   const onMouseUp = useCallback((e) => {
     send({ type: 'mouseup', button: e.button });
@@ -82,13 +90,13 @@ export default function Viewer({ sessionCode, onDisconnect }) {
   }, []);
 
   const onKeyDown = useCallback((e) => {
-    if (!dataRef.current?.open) return;
+    if (!dataRef.current?.open || !insideVideo.current) return;
     e.preventDefault();
     send({ type: 'keydown', key: e.key, code: e.code });
   }, []);
 
   const onKeyUp = useCallback((e) => {
-    if (!dataRef.current?.open) return;
+    if (!dataRef.current?.open || !insideVideo.current) return;
     e.preventDefault();
     send({ type: 'keyup', key: e.key, code: e.code });
   }, []);
@@ -98,12 +106,12 @@ export default function Viewer({ sessionCode, onDisconnect }) {
     peerRef.current = peer;
 
     peer.on('open', () => {
-      setStatusText('Establishing data channel...');
+      setStatusText('Establishing connection...');
       const conn = peer.connect(sessionCode, { reliable: false, ordered: false });
       dataRef.current = conn;
 
       conn.on('open', () => {
-        setStatusText('Requesting screen stream...');
+        setStatusText('Starting screen stream...');
         const canvas = document.createElement('canvas');
         canvas.width = 1; canvas.height = 1;
         const call = peer.call(sessionCode, canvas.captureStream());
@@ -112,7 +120,7 @@ export default function Viewer({ sessionCode, onDisconnect }) {
           videoRef.current.srcObject = remoteStream;
           videoRef.current.play().catch(() => {});
           setStatus('connected');
-          setStatusText('Connected — click screen to capture mouse');
+          setStatusText('Connected');
         });
 
         call.on('close', () => { setStatus('error'); setStatusText('Stream closed'); });
@@ -153,7 +161,7 @@ export default function Viewer({ sessionCode, onDisconnect }) {
       <div className="viewer-toolbar">
         <div className="toolbar-status">
           <span className={`dot ${dotClass}`} />
-          {pointerLocked ? 'Mouse captured — Press Escape to release' : statusText}
+          {statusText}
         </div>
         <div className="toolbar-code">Session: <span>{sessionCode}</span></div>
         <button className="disconnect-btn" onClick={onDisconnect}>Disconnect</button>
@@ -167,34 +175,40 @@ export default function Viewer({ sessionCode, onDisconnect }) {
           </div>
         )}
 
-        {/* Click-to-capture overlay — shown when connected but mouse not locked */}
-        {status === 'connected' && !pointerLocked && (
-          <div
-            className="loading-overlay"
-            style={{ background: 'rgba(0,0,0,0.45)', cursor: 'pointer' }}
-            onClick={requestLock}
-          >
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.5">
-              <path d="M12 2C8.13 2 5 5.13 5 9v3H4v10h16V12h-1V9c0-3.87-3.13-7-7-7zm0 2c2.76 0 5 2.24 5 5v3H7V9c0-2.76 2.24-5 5-5z" fill="#60a5fa" stroke="none"/>
-            </svg>
-            <span style={{ color: '#60a5fa', fontWeight: 600 }}>Click to capture mouse</span>
-            <span style={{ color: '#94a3b8', fontSize: 12 }}>Press Escape to release</span>
-          </div>
-        )}
-
+        {/* Video — cursor: none so only our overlay cursor shows */}
         <video
           ref={videoRef}
           className="remote-video"
-          style={{ display: status === 'connected' ? 'block' : 'none' }}
+          style={{ display: status === 'connected' ? 'block' : 'none', cursor: 'none' }}
           onMouseMove={onMouseMove}
           onMouseDown={onMouseDown}
           onMouseUp={onMouseUp}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           onWheel={onWheel}
           onContextMenu={(e) => e.preventDefault()}
           tabIndex={0}
           muted
           autoPlay
           playsInline
+        />
+
+        {/* Local cursor overlay — moves instantly via direct DOM transform */}
+        <div
+          ref={cursorRef}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: 20,
+            height: 20,
+            pointerEvents: 'none',
+            opacity: 0,
+            transform: 'translate(0px, 0px)',
+            zIndex: 20,
+            // dangerouslySetInnerHTML used below for the SVG
+          }}
+          dangerouslySetInnerHTML={{ __html: CURSOR_SVG }}
         />
       </div>
     </div>
