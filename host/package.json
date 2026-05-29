@@ -1,0 +1,39 @@
+{
+  "name": "remote-desktop-host",
+  "version": "1.0.0",
+  "description": "Remote Desktop Host Agent",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64"
+  },
+  "dependencies": {
+    "electron": "^28.3.3",
+    "peerjs": "^1.5.4"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.aptean.remote-desktop-host",
+    "productName": "Remote Desktop Host",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "!node_modules/.cache"
+    ]
+  }
+}

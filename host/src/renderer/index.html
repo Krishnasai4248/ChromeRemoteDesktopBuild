@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Remote Desktop Host</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- PeerJS loaded from local node_modules -->
+  <script src="../../node_modules/peerjs/dist/peerjs.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <rect width="48" height="48" rx="12" fill="#2563EB"/>
+        <rect x="8" y="10" width="32" height="22" rx="3" fill="white" opacity="0.9"/>
+        <rect x="18" y="32" width="12" height="3" fill="white" opacity="0.9"/>
+        <rect x="14" y="35" width="20" height="3" rx="1.5" fill="white" opacity="0.9"/>
+        <circle cx="34" cy="34" r="8" fill="#10B981"/>
+        <path d="M30 34l2.5 2.5L38 31" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <h1>Remote Desktop Host</h1>
+    <p class="subtitle">Share this session code with the viewer</p>
+
+    <div class="session-box" id="sessionBox">
+      <span class="session-label">Session Code</span>
+      <span class="session-code" id="sessionCode">------</span>
+      <button class="copy-btn" id="copyBtn" title="Copy code">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="status-bar">
+      <span class="status-dot" id="statusDot"></span>
+      <span class="status-text" id="statusText">Initializing...</span>
+    </div>
+
+    <div class="viewer-url">
+      <span>Viewer URL:</span>
+      <a id="viewerLink" href="#" target="_blank">Open viewer in browser</a>
+    </div>
+
+    <div class="connection-info" id="connectionInfo" style="display:none">
+      <div class="info-row">
+        <span>Client connected</span>
+        <span id="clientCount">0</span>
+      </div>
+    </div>
+
+    <button class="stop-btn" id="stopBtn" style="display:none">
+      Disconnect All
+    </button>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
