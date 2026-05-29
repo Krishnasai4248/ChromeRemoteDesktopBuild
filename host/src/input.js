@@ -5,8 +5,8 @@ const os   = require('os');
 const path = require('path');
 const fs   = require('fs');
 
-const EXE_PATH = path.join(os.tmpdir(), 'rdhost-input.exe');
-const CS_PATH  = path.join(os.tmpdir(), 'rdhost-input.cs');
+const EXE_PATH = path.join(os.tmpdir(), 'rdhost-input-v2.exe');
+const CS_PATH  = path.join(os.tmpdir(), 'rdhost-input-v2.cs');
 
 // Tiny C# console app: reads plain-text commands from stdin, calls Win32 directly.
 // Protocol: m x y | ld x y | lu | rd x y | ru | w delta | kd vk | ku vk
@@ -28,6 +28,7 @@ class I {
                     case "lu": mouse_event(4,0,0,0,IntPtr.Zero); break;
                     case "rd": SetCursorPos(int.Parse(p[1]),int.Parse(p[2])); mouse_event(8,0,0,0,IntPtr.Zero); break;
                     case "ru": mouse_event(16,0,0,0,IntPtr.Zero); break;
+                    case "md": mouse_event(1,(uint)int.Parse(p[1]),(uint)int.Parse(p[2]),0,IntPtr.Zero); break;
                     case "w":  mouse_event(2048,0,0,int.Parse(p[1])>0?-120:120,IntPtr.Zero); break;
                     case "kd": keybd_event((byte)int.Parse(p[1]),0,0,IntPtr.Zero); break;
                     case "ku": keybd_event((byte)int.Parse(p[1]),0,2,IntPtr.Zero); break;
@@ -58,6 +59,7 @@ while($true){
         'lu' {[W32]::mouse_event(4,0,0,0,[IntPtr]::Zero)}
         'rd' {[W32]::SetCursorPos([int]$p[1],[int]$p[2]);[W32]::mouse_event(8,0,0,0,[IntPtr]::Zero)}
         'ru' {[W32]::mouse_event(16,0,0,0,[IntPtr]::Zero)}
+        'md' {[W32]::mouse_event(1,[uint][int]$p[1],[uint][int]$p[2],0,[IntPtr]::Zero)}
         'w'  {$d=if([int]$p[1]-gt 0){-120}else{120};[W32]::mouse_event(2048,0,0,$d,[IntPtr]::Zero)}
         'kd' {[W32]::keybd_event([byte][int]$p[1],0,0,[IntPtr]::Zero)}
         'ku' {[W32]::keybd_event([byte][int]$p[1],0,2,[IntPtr]::Zero)}
@@ -132,6 +134,9 @@ function resolveVK(key) {
 
 async function handleInput(event) {
   switch (event.type) {
+    case 'mousedelta':
+      write(`md ${Math.round(event.dx)} ${Math.round(event.dy)}`);
+      break;
     case 'mousemove':
       write(`m ${Math.round(event.x)} ${Math.round(event.y)}`);
       break;

@@ -6,6 +6,10 @@ const { handleInput } = require('./input');
 // Disabling hardware acceleration forces GDI capture which works everywhere.
 app.disableHardwareAcceleration();
 
+// Disable mDNS ICE candidate obfuscation — .local addresses can't be resolved
+// on Windows Server, causing WebRTC to fall back to slower STUN relay paths.
+app.commandLine.appendSwitch('disable-features', 'WebRtcHideLocalIpsWithMdns');
+
 let mainWindow;
 
 function createWindow() {
