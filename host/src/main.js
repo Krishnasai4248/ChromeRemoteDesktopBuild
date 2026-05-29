@@ -2,6 +2,10 @@ const { app, BrowserWindow, ipcMain, desktopCapturer, screen } = require('electr
 const path = require('path');
 const { handleInput } = require('./input');
 
+// DXGI Desktop Duplication fails in RDP/virtual machine sessions.
+// Disabling hardware acceleration forces GDI capture which works everywhere.
+app.disableHardwareAcceleration();
+
 let mainWindow;
 
 function createWindow() {
