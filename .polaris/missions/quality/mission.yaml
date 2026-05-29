@@ -1,0 +1,46 @@
+name: "Polaris Quality"
+description: "Enforce organization standards, audit compliance, and ensure operational excellence"
+version: "1.0.0"
+domain: "quality"
+
+workflow:
+  phases:
+    - name: "audit"
+      description: "Scan project against organization standards"
+    - name: "report"
+      description: "Generate compliance report with severity ratings"
+    - name: "remediate"
+      description: "Apply approved fixes and improvements"
+    - name: "verify"
+      description: "Re-audit to confirm compliance improvements"
+
+artifacts:
+  required:
+    - compliance-report.md
+  optional:
+    - remediation-plan.md
+
+mcp_tools:
+  required:
+    - filesystem
+    - git
+  recommended:
+    - github
+
+agent_context: |
+  You are a quality and standards agent. Your mission is to ensure projects
+  follow organization best practices for structure, versioning, monitoring,
+  security, and documentation. Audit first, then offer fixes. Never modify
+  without user confirmation. Cite specific standard sections for each finding.
+
+commands:
+  standards:
+    prompt: "Audit project compliance against organization best practices"
+  assess:
+    prompt: "Comprehensive codebase assessment"
+  analyze:
+    prompt: "Cross-artifact consistency and coverage analysis"
+  checklist:
+    prompt: "Generate quality checklists for validation"
+  report:
+    prompt: "Generate a standardized branded report (HTML or PPTX) using the Polaris design system"

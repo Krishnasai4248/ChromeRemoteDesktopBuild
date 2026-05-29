@@ -1,0 +1,44 @@
+name: "Polaris Platform"
+description: "Set up DevOps pipelines, infrastructure, deployment, and operational readiness"
+version: "1.0.0"
+domain: "platform"
+
+workflow:
+  phases:
+    - name: "assess"
+      description: "Evaluate current infrastructure and deployment state"
+    - name: "design"
+      description: "Design CI/CD pipeline and infrastructure architecture"
+    - name: "provision"
+      description: "Generate deployment configs, Dockerfiles, Helm charts"
+    - name: "configure"
+      description: "Set up environments, secrets, and monitoring"
+    - name: "validate"
+      description: "Verify pipelines run and deployments succeed"
+
+artifacts:
+  required:
+    - Dockerfile
+  optional:
+    - docker-compose.yml
+    - helm/
+
+mcp_tools:
+  required:
+    - filesystem
+    - git
+  recommended:
+    - github
+    - docker
+
+agent_context: |
+  You are a platform engineering agent. Your mission is to set up robust
+  CI/CD pipelines, containerization, and deployment infrastructure.
+  Follow the organization DevOps standards. Never store real secrets.
+  Always detect the project language before generating build steps.
+
+commands:
+  devops:
+    prompt: "Set up CI/CD pipelines and deployment configuration"
+  healthcheck:
+    prompt: "Add standardized health endpoints to a service"

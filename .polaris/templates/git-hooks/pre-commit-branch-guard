@@ -1,0 +1,114 @@
+#!/usr/bin/env python
+"""Polaris pre-commit hook: blocks source code on protected branches.
+
+Allows planning artifacts (polaris-specs/, .polaris/, docs/, agent dirs)
+on protected branches. Blocks everything else. Override with --no-verify.
+"""
+import subprocess
+import sys
+from pathlib import Path
+
+
+def get_current_branch():
+    """Get current branch name, empty string if detached HEAD."""
+    result = subprocess.run(
+        ["git", "symbolic-ref", "--short", "HEAD"],
+        capture_output=True, encoding="utf-8", check=False,
+    )
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def get_staged_files():
+    """Get list of staged file paths."""
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
+        capture_output=True, encoding="utf-8", check=False,
+    )
+    return [f for f in result.stdout.strip().split("\n") if f]
+
+
+def find_repo_root():
+    """Find repository root."""
+    result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True, encoding="utf-8", check=False,
+    )
+    if result.returncode == 0:
+        return Path(result.stdout.strip())
+    return Path.cwd()
+
+
+def main():
+    repo_root = find_repo_root()
+
+    # Try importing from installed package first, then from src/
+    try:
+        from specify_cli.core.branch_protection import (
+            load_branch_protection_config,
+            is_protected_branch,
+            check_staged_files,
+        )
+    except ImportError:
+        sys.path.insert(0, str(repo_root / "src"))
+        try:
+            from specify_cli.core.branch_protection import (
+                load_branch_protection_config,
+                is_protected_branch,
+                check_staged_files,
+            )
+        except ImportError:
+            # Module not available -- skip gracefully
+            return 0
+
+    config = load_branch_protection_config(repo_root)
+    branch = get_current_branch()
+
+    if not branch or not is_protected_branch(branch, config):
+        return 0
+
+    staged = get_staged_files()
+    if not staged:
+        return 0
+
+    blocked = check_staged_files(staged, config)
+    if not blocked:
+        return 0
+
+    # Block the commit with an actionable error
+    is_tty = hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
+    if is_tty:
+        red = "\033[1;31m"
+        yellow = "\033[33m"
+        dim = "\033[90m"
+        reset = "\033[0m"
+    else:
+        red = yellow = dim = reset = ""
+
+    print(
+        f"\n{red}Branch Protection:{reset} "
+        f"Cannot commit source code to '{branch}'",
+        file=sys.stderr,
+    )
+    print(f"\nBlocked files ({len(blocked)}):", file=sys.stderr)
+    for f in blocked[:10]:
+        print(f"  - {f}", file=sys.stderr)
+    if len(blocked) > 10:
+        print(f"  ... and {len(blocked) - 10} more", file=sys.stderr)
+
+    print(
+        f"\n{yellow}Fix:{reset} Implementation code must be committed "
+        f"in a worktree.",
+        file=sys.stderr,
+    )
+    print("  Run: polaris implement <WP_ID>", file=sys.stderr)
+    print("  Then: cd .worktrees/<feature>-<WP_ID>/", file=sys.stderr)
+    print(
+        f"\n{dim}Bypass: git commit --no-verify "
+        f"(for intentional hotfixes){reset}\n",
+        file=sys.stderr,
+    )
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

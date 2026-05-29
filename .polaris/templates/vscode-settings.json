@@ -1,0 +1,13 @@
+{
+    "chat.promptFilesRecommendations": {
+        "polaris.constitution": true,
+        "polaris.specify": true,
+        "polaris.plan": true,
+        "polaris.tasks": true,
+        "polaris.implement": true
+    },
+    "chat.tools.terminal.autoApprove": {
+        ".polaris/scripts/bash/": true,
+        ".polaris/scripts/ps/": true
+    }
+}

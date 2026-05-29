@@ -1,0 +1,47 @@
+name: "Polaris Bootstrap"
+description: "Scaffold new applications, MCP servers, and restructure existing codebases to follow best practices"
+version: "1.0.0"
+domain: "bootstrap"
+
+workflow:
+  phases:
+    - name: "discover"
+      description: "Understand project requirements and technology choices"
+    - name: "scaffold"
+      description: "Generate project structure from templates"
+    - name: "configure"
+      description: "Set up tooling, dependencies, and configuration"
+    - name: "validate"
+      description: "Verify scaffold works and tests pass"
+
+artifacts:
+  required:
+    - README.md
+  optional:
+    - docker-compose.yml
+    - .editorconfig
+
+mcp_tools:
+  required:
+    - filesystem
+    - git
+  recommended:
+    - github
+
+agent_context: |
+  You are a project scaffolding agent. Your mission is to help users
+  create well-structured projects following organization best practices.
+  Always ask before acting. Detect language and framework before suggesting.
+  Never overwrite existing files without confirmation.
+
+commands:
+  newapp:
+    prompt: "Scaffold a new application from monorepo template"
+  newmcp:
+    prompt: "Scaffold an MCP server with FastMCP"
+  scaffold:
+    prompt: "Scaffold from registered templates"
+  onboard:
+    prompt: "Onboard an existing project with guided discovery"
+  restructure:
+    prompt: "Restructure codebase to follow organization standards"

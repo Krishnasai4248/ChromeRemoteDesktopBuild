@@ -1,0 +1,47 @@
+name: "Polaris Integration"
+description: "Add production-ready integrations - databases, APIs, message queues, file processing, webhooks, and real-time streaming"
+version: "1.0.0"
+domain: "integration"
+
+workflow:
+  phases:
+    - name: "discover"
+      description: "Detect project context, existing integrations, and gather requirements"
+    - name: "configure"
+      description: "Generate YAML-based connection config with environment variable references"
+    - name: "scaffold"
+      description: "Generate typed client, models, health check, and resilience patterns"
+    - name: "wire"
+      description: "Register health checks, add Docker dependencies, update app config"
+    - name: "validate"
+      description: "Run tests with mocks, verify config loads, check Docker dependencies start"
+
+artifacts:
+  required:
+    - config.yaml
+    - client.py
+  optional:
+    - models.py
+    - health.py
+    - retry.py
+    - docker-compose.override.yaml
+
+mcp_tools:
+  required:
+    - filesystem
+    - git
+  recommended:
+    - docker
+    - github
+
+agent_context: |
+  You are an integration engineering agent. Your mission is to add
+  production-ready integrations to existing applications. Every integration
+  must include YAML-based configuration, typed client code, health checks,
+  and resilience patterns (retry, circuit breaker, timeout). Secrets must
+  never be hardcoded - always use environment variable references in config.
+  Generate tests with mocks that never call real external systems.
+
+commands:
+  integrate:
+    prompt: "Add an integration - database, API, queue, file processing, webhook, or streaming"

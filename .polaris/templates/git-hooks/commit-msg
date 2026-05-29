@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+"""Polaris commit-msg hook: auto-append Co-Authored-By trailer.
+
+Ensures every commit includes the Aptean Polaris co-author attribution.
+This hook is installed by 'polaris init' and 'polaris upgrade'.
+
+The trailer is added automatically - no user action required.
+To check: git log --format="%b" -1
+"""
+import sys
+from pathlib import Path
+
+
+def main():
+    if len(sys.argv) < 2:
+        return 0
+
+    # Only add the trailer in initialized Polaris projects
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    polaris_dir = repo_root / ".polaris"
+    if not (polaris_dir.is_dir() and (polaris_dir / "metadata.yaml").exists()):
+        return 0
+
+    commit_msg_file = sys.argv[1]
+    trailer = "Co-Authored-By: Aptean Polaris <polaris@aptean.com>"
+
+    try:
+        with open(commit_msg_file, "r", encoding="utf-8", errors="replace") as f:
+            msg = f.read()
+    except OSError:
+        return 0
+
+    # Skip merge commits (auto-generated messages)
+    if msg.startswith(("Merge branch", "Merge remote", "Merge pull request", "Merge tag")):
+        return 0
+
+    # Skip if trailer already present (case-insensitive)
+    if "co-authored-by: aptean polaris" in msg.lower():
+        return 0
+
+    # Append the trailer with proper formatting
+    with open(commit_msg_file, "w", encoding="utf-8") as f:
+        f.write(msg.rstrip("\n") + "\n\n" + trailer + "\n")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
